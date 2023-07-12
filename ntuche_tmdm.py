@@ -210,6 +210,57 @@ class arrangement:
         return all_students_name
     
     @property
+    def all_students_year_split(self):
+        """
+        Parameters
+        ----------
+        df_gradedata_split: list, pd.DataFrame
+            不同學期所有學生的成績表
+        sheetname: list, str
+            含有所有學期名稱的列表 eg. 110_1(代表110學年度第一學期)
+        all_students_year_split: 2d list, str
+            不同學期所有學生的年級
+        """
+        df_gradedata_split, sheetname = self.df_gradedata_split
+        all_students_id_split = self.all_students_id_split
+        all_students_year_split = []
+        for df_gradedata_spliti, all_students_idi in zip(df_gradedata_split, all_students_id_split):
+            all_students_year = []
+            for students_id in all_students_idi:
+                try:
+                    students_year = df_gradedata_spliti[df_gradedata_spliti['學號']==students_id]['年級'].iloc[0]
+                except:
+                    students_year = np.nan
+                all_students_year.append(students_year)
+            all_students_year_split.append(all_students_year)
+        return all_students_year_split
+    
+    @property
+    def all_students_year(self):
+        """
+        Parameters
+        ----------
+        all_students_name_split: 2d list, str
+            不同學期所有學生的姓名
+        all_students_year: list, str
+            所有學生的年級
+        """
+        df_gradedata_split, sheetname = self.df_gradedata_split
+        all_students_id = self.all_students_id
+        all_students_year = []
+        for students_id in all_students_id:
+            students_year = None
+            for df_gradedata_spliti in df_gradedata_split:
+                try:
+                    students_year = df_gradedata_spliti[df_gradedata_spliti['學號']==students_id]['年級'].iloc[0]
+                except:
+                    students_year = None
+                if students_year is not None:
+                    all_students_year.append(students_year)
+                    break
+        return all_students_year
+    
+    @property
     def all_students_department_split(self):
         """
         Parameters
@@ -371,7 +422,7 @@ class arrangement:
             for (ide, cne, cde, gne) in zip(df_gradedata_spliti['學號'], df_gradedata_spliti['課名'], df_gradedata_spliti['學分'], df_gradedata_spliti['成績']):
                 # print(cne, type(cne))
                 if ( ide.strip() == student_id ) and ( type(gne) is str ) and ( type(cne) is str ):
-                    if ( ( core_course1[0] in cne ) or ( core_course1[1] in cne ) or ( core_course1[2] in cne ) ) and ( '實驗' not in cne ):
+                    if ( ( core_course1[0] in cne ) or ( core_course1[1] in cne ) or ( core_course1[2] in cne ) ) and ( '實驗' not in cne ) and ( cne not in core_course1_name ): # 若重複修習相同課名, 取最新的資料
                         core_course1_name.append(cne.strip())
                         gde = grade_dict[gne.strip()]
                         grade = np.append(grade, gde)
@@ -404,6 +455,8 @@ class arrangement:
             所有學生的姓名
         all_students_department: list, str
             所有學生的系所名稱
+        all_students_year: list, str
+            所有學生的年級
         df_gradedata_split: list, pd.DataFrame
             不同學期所有學生的成績表
         sheetname: list, str
@@ -432,6 +485,7 @@ class arrangement:
         all_students_id = self.all_students_id
         all_students_name = self.all_students_name
         all_students_department = self.all_students_department
+        all_students_year = self.all_students_year
         df_gradedata_split, sheetname = self.df_gradedata_split
         all_allavg = []
         all_allcredit = []
@@ -441,7 +495,7 @@ class arrangement:
         for sheetnamei in sheetname:
             sheetname_new.append(sheetnamei+' 所有科目平均')
             sheetname_new.append(sheetnamei+' 總學分數')
-        column = ['學號','學生姓名','學生本學系'] + sheetname_new + ['三科平均']
+        column = ['學號','學生姓名','學生本學系', '年級'] + sheetname_new + ['三科平均']
         for student_id in all_students_id: # 獲得所有學生成績資料的list
             allavg, allcredit = self.calc_allavg(student_id, True)
             core1avg, fulldata = self.calc_core1avg(student_id, True)
@@ -457,7 +511,8 @@ class arrangement:
         for all_allavgi, all_allcrediti in zip(all_allavg.T, all_allcredit.T):
             data_allavg_allcredit.append(all_allavgi.tolist())
             data_allavg_allcredit.append(all_allcrediti.tolist())
-        data = [all_students_id, all_students_name, all_students_department] + data_allavg_allcredit + [all_core1avg]
+        data = [all_students_id, all_students_name, all_students_department, all_students_year] +\
+        data_allavg_allcredit + [all_core1avg]
         df_avgdata = pd.DataFrame(zip(*data), columns=column)
         df_alldata = pd.concat([df_avgdata, df_corse1data], axis=1)
         self.__df_alldata = df_alldata
